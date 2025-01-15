@@ -1,11 +1,11 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 
 
-register_keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text = 'Войти'),
+register = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text = 'Войти'),
                                       KeyboardButton(text = 'Зарегистрироваться')],
                                      ],resize_keyboard=True)
 
-main_keyboard = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text = 'Руководство пользователя')],
+main = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text = 'Руководство пользователя')],
                                      [KeyboardButton(text = 'Узнать БЖУ'),
                                       KeyboardButton(text = 'Составить диетный план')],
                                      [KeyboardButton(text = 'Контакты'),

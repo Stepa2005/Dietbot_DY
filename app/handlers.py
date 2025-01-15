@@ -37,7 +37,7 @@ listuser = {}
 router = Router()
 @router.message(CommandStart(), State(None))
 async def cmd_start(message: Message, state: FSMContext):
-    await message.reply(f'Привет', reply_markup=kb.register_keyboard)  #{message.from_user.last_name} {message.from_user.first_name}! Ваш id={message.from_user.id}\n
+    await message.reply(f'Привет', reply_markup=kb.register)  #{message.from_user.last_name} {message.from_user.first_name}! Ваш id={message.from_user.id}\n
     #await message.answer(f'Введите Вашу Фамилию и Имя', show_alert=True)
     #await state.update_data(lastfirstname=f'{message.from_user.last_name} {message.from_user.first_name}')
     #await state.set_state(Register.name)
@@ -83,8 +83,8 @@ async def register_name(message: Message, state: FSMContext):
 async def register_name(message: Message, state: FSMContext):
     await state.update_data(ch_illnesses=message.text)
     data = await state.get_data()
-    await message.answer(f'Ваше имя: {data.name}\nВаш пол: {data.sex}\nВаш вес: {data.weight}\n')
-    await bot.edit_message_reply_markup(chat_id=message.chat.id, message_id=message.message_id, reply_markup=kb.main_keyboard)
+    await message.answer(f'Ваше имя: {data.get("name")}\nВаш пол: {data.get("sex")}\nВаш вес: {data.get("weight")}\n', reply_markup=kb.register)
+    await message.answer("Теперь выберите действие:", reply_markup=kb.main)
     await state.clear()
 
 '''@router.message(Register.name)
