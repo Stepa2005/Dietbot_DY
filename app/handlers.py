@@ -113,7 +113,7 @@ async def register_ph_condition(message: Message, state: FSMContext):
     await state.update_data(ph_condition=message.text)
     await state.set_state(Register.ch_illnesses)
     await message.answer(
-        'Есть ли у вас какие-то хронические заболевания, травмы (если нет, то напишите "нет")'
+        'Есть ли у вас какие-то хронические заболевания, травмы, аллергии (если нет, то напишите "нет")'
     )
 
 
@@ -152,6 +152,15 @@ async def register_goal(message: Message, state: FSMContext):
 async def contacts(message: Message):
     await message.answer(f"Контакты разработчиков", reply_markup=kb.contacts)
 
+@router.message(F.text == "Войти")
+async def abletowrite(message: Message, state: FSMContext):
+    try:
+        user_data = await rq.get_user_data(message.from_user.id)
+        await message.answer(f'Добро пожаловать, {user_data["name"]}', reply_markup=kb.register)
+        await message.answer("Теперь выберите действие:", reply_markup=kb.main)
+    except Exception:
+        await message.answer("Пройдите регистрацию!")
+    
 
 @router.message(Command("Инструкция"), State(None))
 async def instruction(message: Message):

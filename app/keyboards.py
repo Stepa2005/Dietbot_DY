@@ -3,7 +3,8 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMar
 
 register = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text = 'Войти'),
                                       KeyboardButton(text = 'Зарегистрироваться')],
-                                     ],resize_keyboard=True)
+                                     ],resize_keyboard=True,
+                                     input_field_placeholder = 'Выберите нужную команду')
 
 main = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text = 'Узнать БЖУ'),
                                       KeyboardButton(text = 'Составить диетный план')],

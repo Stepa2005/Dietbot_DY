@@ -15,7 +15,7 @@ async def set_user(
     height: int,
     weight: int,
     ph_condition: str,
-    ch_illnesses: str,
+    ch_illnesses: str,  
     goal: str,
 ) -> User:
     async with async_session() as session:
@@ -53,6 +53,7 @@ async def get_user_data(tg_id):
         user = result.scalars().first()
         if user:
             return {
+                "name": user.name,
                 "sex": user.sex,
                 "age": user.age,
                 "height": user.height,
