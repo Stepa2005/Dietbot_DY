@@ -21,11 +21,10 @@ from aiogram.types import TelegramObject
 from html import escape
 import asyncio
 import logging
+
 from bot import bot
-
 from app.handlers import router
-
-token = "7592817480:AAES9h4YMXb-Qg7H6PfoDNeS8NenC6l1WJ4"
+from database.models import async_main
 
 #Включаем логирование
 logging.basicConfig(force=True, level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -34,11 +33,12 @@ logger = logging.getLogger(__name__)
 dp = Dispatcher(storage=MemoryStorage())
 
 async def start_bot():
-    commands = [BotCommand(command='com1', description='Узнать БЖУ'),
-                BotCommand(command='com2', description='Команда2')]
+    commands = [BotCommand(command='instruction', description='Руководство пользователя'),
+                BotCommand(command='contacts', description='Контакты разработчиков')]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
 
 async def main(): #Основная асинхронная функция, которая будет запускаться при старте бота.
+    await async_main()
     dp.include_router(router)
     dp.startup.register(start_bot)
     try:
