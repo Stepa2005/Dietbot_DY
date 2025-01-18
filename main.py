@@ -24,30 +24,39 @@ import logging
 from bot import bot
 
 from app.handlers import router
+from database.models import async_main
 
-token = "7592817480:AAES9h4YMXb-Qg7H6PfoDNeS8NenC6l1WJ4"
-
-#Включаем логирование
-logging.basicConfig(force=True, level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Включаем логирование
+logging.basicConfig(
+    force=True,
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 dp = Dispatcher(storage=MemoryStorage())
 
+
 async def start_bot():
-    commands = [BotCommand(command='com1', description='Узнать БЖУ'),
-                BotCommand(command='com2', description='Команда2')]
+    commands = [
+        BotCommand(command="instruction", description="Руководство пользователя"),
+        BotCommand(command="contacts", description="Контакты разработчиков"),
+    ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
 
-async def main(): #Основная асинхронная функция, которая будет запускаться при старте бота.
+
+async def main():
+    await async_main()
     dp.include_router(router)
     dp.startup.register(start_bot)
     try:
-      print("Бот запущен...")
-      await bot.delete_webhook(drop_pending_updates=True)
-      await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types()) #запускаем бота в режиме опроса (polling). Бот начинает непрерывно запрашивать обновления с сервера Telegram и обрабатывать их
+        print("Бот запущен...")
+        await bot.delete_webhook(drop_pending_updates=True)
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     finally:
-      await bot.session.close()
-      print("Бот остановлен")
+        await bot.session.close()
+        print("Бот остановлен")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

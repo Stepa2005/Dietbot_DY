@@ -2,6 +2,9 @@ from aiogram import Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-token = "7592817480:AAES9h4YMXb-Qg7H6PfoDNeS8NenC6l1WJ4"
+TELEGRAM_API_TOKEN = "8089225129:AAFBcRLeAXEZZJvu_f9Z9f9DsJSGYJThsvM"
+GigaChatKey = "M2Y1Mjk0NGMtNGNiMC00NjllLTgwMDYtYmNiMzNlOGI5MWJjOjllY2Q0MzIyLTJlNjItNGRjNC1iNGExLTA4ZWNhMDEzOGYyMQ=="
 
-bot = Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(
+    token=TELEGRAM_API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
