@@ -24,6 +24,9 @@ from asyncio import run
 import logging
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_gigachat.chat_models import GigaChat
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+
 
 from bot import bot, GigaChatKey
 import app.keyboards as kb
@@ -46,8 +49,18 @@ class Register(StatesGroup):
 class Write(StatesGroup):
     can = State()
 
-listuser = {}    
+reminder_tasks = {}
+scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
 router = Router()
+
+
+def is_alpha(input_text: str) -> bool:
+    return input_text.isalpha()
+
+
+def is_digit(input_text: str) -> bool:
+    return input_text.isdigit()
+
 @router.message(CommandStart(), State(None))
 async def cmd_start(message: Message, state: FSMContext):
     await message.reply(f"Привет", reply_markup=kb.register)
@@ -125,6 +138,9 @@ async def register_ch_illnesses(message: Message, state: FSMContext):
         "Какие у вас цели (набрать мышечную массу, похудеть, исправить проблемы со здоровьем)?"
     )
 
+async def send_reminder(tg_id: int):
+    await bot.send_message(tg_id, "Пользуйтесь ботом побольше!")
+
 
 @router.message(Register.goal)
 async def register_goal(message: Message, state: FSMContext):
@@ -140,6 +156,7 @@ async def register_goal(message: Message, state: FSMContext):
         ph_condition=data.get("ph_condition"),
         ch_illnesses=data.get("ch_illnesses"),
         goal=data.get("goal"),
+        is_registered=True,
     )
     await message.answer(
         f'Ваше имя: {data.get("name")}\nВаш пол: {data.get("sex")}\nВаш возраст: {data.get("age")}\nВаш рост: {data.get("height")}\nВаш вес: {data.get("weight")}\n',
@@ -147,6 +164,16 @@ async def register_goal(message: Message, state: FSMContext):
     )
     await message.answer("Теперь выберите действие:", reply_markup=kb.main)
     await state.clear()
+    await state.clear()
+    task = scheduler.add_job(
+        send_reminder, "interval", seconds=180, args=[message.from_user.id]
+    )
+    reminder_tasks[message.from_user.id] = task
+    await message.answer(
+        "Напоминания включены! Я буду присылать уведомления каждые три минуты."
+    )
+    if not scheduler.running:
+        scheduler.start()
 
 @router.message(Command("contacts"), State(None))
 async def contacts(message: Message):
@@ -162,7 +189,7 @@ async def abletowrite(message: Message, state: FSMContext):
         await message.answer("Пройдите регистрацию!")
     
 
-@router.message(Command("Инструкция"), State(None))
+@router.message(Command("instruction"), State(None))
 async def instruction(message: Message):
     instruction_text = """
     🎉 **Добро пожаловать, пройди регистрацию или войди в уже имеющийся аккаунт!** 🎉
@@ -222,6 +249,7 @@ async def get_gigachat_response(user_message):
 
 @router.message(F.text == "Узнать БЖУ")
 async def abletowrite(message: Message, state: FSMContext):
+    await rq.bju_request(tg_id=message.from_user.id, request=message.text)
     await state.set_state(Write.can)
     await message.reply('Введите продукт, БЖУ которого хотите узнать')
 
@@ -240,16 +268,24 @@ async def PFC_message(message: Message, state: FSMContext):
 async def handle_message(message: Message, state: FSMContext):
     logging.debug("Получена команда: Составить диетный план")
     user_data = await rq.get_user_data(message.from_user.id)
-    user_message = f'Пол: {user_data["sex"]}, возраст: {user_data["age"]}, рост: {user_data["height"]}, вес: {user_data["weight"]}, физическая активность: {user_data["ph_condition"]}, хронические заболевания, травмы: {user_data["ch_illnesses"]}, цель: {user_data["goal"]}. Составь для этого человека диетный план на каждый день недели (расписывая каждый день), который поможет ему достичь желаемого результата'
+    user_message = f'Пол: {user_data["sex"]}, возраст: {user_data["age"]}, рост: {user_data["height"]}, вес: {user_data["weight"]}, физическая активность: {user_data["ph_condition"]}, хронические заболевания, травмы: {user_data["ch_illnesses"]}, цель: {user_data["goal"]}. Составь для этого человека диетный план на (расписывая несколько дней), который поможет ему достичь желаемого результата, напиши строго меньше 4000 символов'
     response = await get_gigachat_response(user_message)
     await message.reply(response)
+    await rq.diet_plan_request(tg_id=message.from_user.id)
 
 
 @router.message(F.text == "Составить план тренировок")
 async def handle_message(message: Message, state: FSMContext):
     logging.debug("Получена команда: Составить план тренировок")
     user_data = await rq.get_user_data(message.from_user.id)
-    user_message = f'Пол: {user_data["sex"]}, возраст: {user_data["age"]}, рост: {user_data["height"]}, вес: {user_data["weight"]}, физическая активность: {user_data["ph_condition"]}, хронические заболевания, травмы: {user_data["ch_illnesses"]}, цель: {user_data["goal"]}. Составь для этого человека план тренировок на каждый день недели (расписывая каждый день), который поможет ему достичь желаемого результата'
+    user_message = f'Пол: {user_data["sex"]}, возраст: {user_data["age"]}, рост: {user_data["height"]}, вес: {user_data["weight"]}, физическая активность: {user_data["ph_condition"]}, хронические заболевания, травмы: {user_data["ch_illnesses"]}, цель: {user_data["goal"]}. Составь для этого человека план тренировок (расписывая несколько дней), который поможет ему достичь желаемого результата, напиши строго меньше 4000 символов'
     print(user_message)
     response = await get_gigachat_response(user_message)
     await message.reply(response)
+    await rq.training_plan_request(tg_id=message.from_user.id)
+
+
+@router.message()
+async def without_button(message: Message):
+    await message.reply("Нельзя писать произвольный текст)")
+    await message.answer("Выберите команду!")

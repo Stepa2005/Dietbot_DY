@@ -34,6 +34,7 @@ dp = Dispatcher(storage=MemoryStorage())
 
 async def start_bot():
     commands = [BotCommand(command='instruction', description='Руководство пользователя'),
+                BotCommand(command='start', description="Перезайти"),
                 BotCommand(command='contacts', description='Контакты разработчиков')]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
 
