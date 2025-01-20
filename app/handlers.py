@@ -27,14 +27,14 @@ from langchain_gigachat.chat_models import GigaChat
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-
-from bot import bot, GigaChatKey
+from bot import bot
+from config import GigaChatKey
 import app.keyboards as kb
 import database.requests as rq
 import database.models as models
 
- 
-#Определим состояния:
+
+# Определим состояния:
 class Register(StatesGroup):
     name = State()
     tg_id = State()
@@ -42,12 +42,14 @@ class Register(StatesGroup):
     age = State()
     height = State()
     weight = State()
-    ph_condition = State() # Физическая активность
-    ch_illnesses = State() # Хронические заболевания (любые отклонения)
+    ph_condition = State()
+    ch_illnesses = State()
     goal = State()
-    
+
+
 class Write(StatesGroup):
     can = State()
+
 
 reminder_tasks = {}
 scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
@@ -55,16 +57,46 @@ router = Router()
 
 
 def is_alpha(input_text: str) -> bool:
-    return input_text.isalpha()
+    cleaned_input = "".join([char for char in input_text if char.isalpha()])
+    return len(cleaned_input) == len(input_text)
 
 
 def is_digit(input_text: str) -> bool:
-    return input_text.isdigit()
+    cleaned_input = "".join([char for char in input_text if char.isdigit()])
+    return len(cleaned_input) == len(input_text)
+
 
 @router.message(CommandStart(), State(None))
 async def cmd_start(message: Message, state: FSMContext):
-    await message.reply(f"Привет", reply_markup=kb.register)
-    await message.answer(f"Пройдите регистрацию!")
+    instruction_text = """
+    🎉 **Добро пожаловать, пройди регистрацию или войди в уже имеющийся аккаунт!** 🎉
+
+    Этот бот поможет тебе узнать БЖУ любого продукта, составить план тренировок и питания под свои нужды.
+
+
+    📌 **Как начать?**
+    - Просто нажми на любую кнопку ниже.
+    
+    📝 **Как общаться с ботом?**
+    - После нажатия кнопки Узнать БЖУ отправь название продукта в чат с ботом.
+    - После нажатия кнопкок Составить диетный план и Составить план тренировок ничего писать боту не надо. Для правильной работы надо внимательно пройти регистрацию.
+
+    ⚙️ **Доступные команды:**
+    - `/start` - Начать заново.
+    - `/instruction` - прочитать инструкцию.
+
+    👨‍💻 **Использование Reply клавиатуры:**
+    - **"Узнать БЖУ"** — После нажатия кнопки напиши название продукта, чтобу узнать его БЖУ.
+    - **"Составить диетный план"** — Бот напишет оптимальный диетный план, учитывая твои параметры и цели.
+    - **"Составить план тренировок"** — Бот напишет оптимальный план тренировок, Который поможет достичь желаемого результата.
+
+    👩‍💻 **Если у тебя есть вопросы, просто напиши нам! Наши контакты надодятся в меню, также их можно получить по команде `/contacts`**
+
+ 
+
+    Наслаждайся использованием нашего бота! 😊
+    """
+    await message.answer(instruction_text, reply_markup=kb.register)
 
 
 @router.message(F.text == "Зарегистрироваться")
@@ -75,6 +107,9 @@ async def register(message: Message, state: FSMContext):
 
 @router.message(Register.name)
 async def register_name(message: Message, state: FSMContext):
+    if not is_alpha(message.text):
+        await message.answer("Пожалуйста, введите только буквы для имени.")
+        return
     await state.update_data(name=message.text)
     print("Данные после обновления имени:", await state.get_data())
     await state.set_state(Register.tg_id)
@@ -88,11 +123,16 @@ async def register_tg_id(message: Message, state: FSMContext):
         "Для составления точного плана тренировок и питания ответайте и честно)"
     )
     await state.set_state(Register.sex)
-    await message.answer("Введите ваш пол ♂/♀")
+    await message.answer("Введите ваш пол мужской/женский")
 
 
 @router.message(Register.sex)
 async def register_sex(message: Message, state: FSMContext):
+    if message.text not in ["мужской", "женский"]:
+        await message.answer(
+            "Пожалуйста, введите ваш пол как 'мужской' или 'женский' без кавычек."
+        )
+        return
     await state.update_data(sex=message.text)
     await state.set_state(Register.age)
     await message.answer("Введите ваш возраст")
@@ -100,6 +140,11 @@ async def register_sex(message: Message, state: FSMContext):
 
 @router.message(Register.age)
 async def register_age(message: Message, state: FSMContext):
+    if not is_digit(message.text):
+        await message.answer(
+            "Пожалуйста, введите только числовое значение для возраста (например, 25)."
+        )
+        return
     await state.update_data(age=message.text)
     await state.set_state(Register.height)
     await message.answer("Введите ваш рост")
@@ -107,6 +152,11 @@ async def register_age(message: Message, state: FSMContext):
 
 @router.message(Register.height)
 async def register_height(message: Message, state: FSMContext):
+    if not is_digit(message.text):
+        await message.answer(
+            "Пожалуйста, введите только числовое значение для роста (например, 175)."
+        )
+        return
     await state.update_data(height=message.text)
     await state.set_state(Register.weight)
     await message.answer("Введите ваш вес")
@@ -114,6 +164,11 @@ async def register_height(message: Message, state: FSMContext):
 
 @router.message(Register.weight)
 async def register_weight(message: Message, state: FSMContext):
+    if not is_digit(message.text):
+        await message.answer(
+            "Пожалуйста, введите только числовое значение для веса (например, 70)."
+        )
+        return
     await state.update_data(weight=message.text)
     await state.set_state(Register.ph_condition)
     await message.answer(
@@ -137,6 +192,7 @@ async def register_ch_illnesses(message: Message, state: FSMContext):
     await message.answer(
         "Какие у вас цели (набрать мышечную массу, похудеть, исправить проблемы со здоровьем)?"
     )
+
 
 async def send_reminder(tg_id: int):
     await bot.send_message(tg_id, "Пользуйтесь ботом побольше!")
@@ -162,6 +218,7 @@ async def register_goal(message: Message, state: FSMContext):
         f'Ваше имя: {data.get("name")}\nВаш пол: {data.get("sex")}\nВаш возраст: {data.get("age")}\nВаш рост: {data.get("height")}\nВаш вес: {data.get("weight")}\n',
         reply_markup=kb.register,
     )
+    await message.answer_sticker(r'CAACAgIAAxkBAAELyAZnjppqjm5j6gABvUMx_ldgquxbO50AAp1JAALSnOlK9k2pp2FHSbA2BA')
     await message.answer("Теперь выберите действие:", reply_markup=kb.main)
     await state.clear()
     await state.clear()
@@ -175,26 +232,31 @@ async def register_goal(message: Message, state: FSMContext):
     if not scheduler.running:
         scheduler.start()
 
+
 @router.message(Command("contacts"), State(None))
 async def contacts(message: Message):
     await message.answer(f"Контакты разработчиков", reply_markup=kb.contacts)
+
 
 @router.message(F.text == "Войти")
 async def abletowrite(message: Message, state: FSMContext):
     try:
         user_data = await rq.get_user_data(message.from_user.id)
-        await message.answer(f'Добро пожаловать, {user_data["name"]}', reply_markup=kb.register)
+        await message.answer(
+            f'Добро пожаловать, {user_data["name"]}', reply_markup=kb.register
+        )
         await message.answer("Теперь выберите действие:", reply_markup=kb.main)
     except Exception:
+        await message.answer_sticker(r'CAACAgIAAxkBAAELyAJnjpoP9gi0NqZxMoKAp6-P3DB6-AACZBQAAm_y4UicWujldXIbBzYE')
         await message.answer("Пройдите регистрацию!")
-    
+
 
 @router.message(Command("instruction"), State(None))
 async def instruction(message: Message):
     instruction_text = """
     🎉 **Добро пожаловать, пройди регистрацию или войди в уже имеющийся аккаунт!** 🎉
 
-    Здесь ты можешь узнать БЖУ любого продукта, составить план тренировок и питания под свои нужды.
+    Этот бот поможет тебе узнать БЖУ любого продукта, составить план тренировок и питания под свои нужды.
 
 
     📌 **Как начать?**
@@ -247,11 +309,13 @@ async def get_gigachat_response(user_message):
 
     return response.content
 
+
 @router.message(F.text == "Узнать БЖУ")
 async def abletowrite(message: Message, state: FSMContext):
     await rq.bju_request(tg_id=message.from_user.id, request=message.text)
     await state.set_state(Write.can)
-    await message.reply('Введите продукт, БЖУ которого хотите узнать')
+    await message.reply("Введите продукт, БЖУ которого хотите узнать")
+
 
 @router.message(Write.can)
 async def PFC_message(message: Message, state: FSMContext):
