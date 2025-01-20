@@ -21,12 +21,13 @@ from aiogram.types import TelegramObject
 from html import escape
 import asyncio
 import logging
-from bot import bot
 
+from bot import bot
+from config import TELEGRAM_API_TOKEN
 from app.handlers import router
 from database.models import async_main
 
-# Включаем логирование
+
 logging.basicConfig(
     force=True,
     level=logging.INFO,
@@ -40,6 +41,7 @@ dp = Dispatcher(storage=MemoryStorage())
 async def start_bot():
     commands = [
         BotCommand(command="instruction", description="Руководство пользователя"),
+        BotCommand(command="start", description="Перезайти"),
         BotCommand(command="contacts", description="Контакты разработчиков"),
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())

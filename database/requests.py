@@ -49,3 +49,42 @@ async def set_user(
             await session.commit()
 
         return user
+
+
+async def get_user_data(tg_id):
+    async with async_session() as session:
+        result = await session.execute(select(User).where(User.tg_id == tg_id))
+        user = result.scalars().first()
+        if user:
+            return {
+                "name": user.name,
+                "sex": user.sex,
+                "age": user.age,
+                "height": user.height,
+                "weight": user.weight,
+                "ph_condition": user.ph_condition,
+                "ch_illnesses": user.ch_illnesses,
+                "goal": user.goal,
+            }
+        return None
+
+
+async def bju_request(tg_id: int, request: str):
+    async with async_session() as session:
+        new_request = BottomPFC(tg_id=tg_id, request=request)
+        session.add(new_request)
+        await session.commit()
+
+
+async def diet_plan_request(tg_id: int):
+    async with async_session() as session:
+        new_request = BottomDiet(tg_id=tg_id, request=True)
+        session.add(new_request)
+        await session.commit()
+
+
+async def training_plan_request(tg_id: int):
+    async with async_session() as session:
+        new_request = BottomTraining(tg_id=tg_id, request=True)
+        session.add(new_request)
+        await session.commit()
